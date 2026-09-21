@@ -2,6 +2,7 @@
 import os
 
 import pandas as pd
+from pandas.core.apply import reconstruct_and_relabel_result
 
 
 # Count the number of files in the target folder
@@ -49,6 +50,7 @@ def jump_count(df, sheet_name,matrix_trials):
 
     if reprobados.empty:
         print(f"Todos los participantes han realizado al menos 3 intentos en la sesión '{sheet_name}'.")
+        return(df)
     else:
         print(f"Participantes que no han realizado al menos 3 intentos en la sesión '{sheet_name}':")
         print(reprobados)
@@ -58,6 +60,7 @@ def jump_count(df, sheet_name,matrix_trials):
             #Filtar eliminar por los reprobados
             df = df[~df["Athlete"].isin(reprobados["Athlete"])]
             print(f"Participantes descartados: {reprobados['Athlete'].tolist()}")
+            return(df)
 
 
 def main(selected_file):
@@ -74,6 +77,7 @@ def main(selected_file):
 
         print(f"Sesiones: {sheet_names}")
 
+        #Iterar sobre las hojas del archivo Excel, disponibles
         for sheet_name in sheet_names:
             try:
                 df = pd.read_excel(file_path, sheet_name=sheet_name, header=8)
@@ -83,10 +87,7 @@ def main(selected_file):
                 matrix_trials = df["Athlete"].value_counts().reset_index()
                 matrix_trials.columns = ["Athlete", "Trials"]
 
-                jump_count(df, sheet_name, matrix_trials)
-
-
-
+                df = jump_count(df, sheet_name, matrix_trials)
 
             except Exception as e:
                 print(f" -> Error al procesar la hoja '{sheet_name}': {e}")
