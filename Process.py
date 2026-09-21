@@ -37,51 +37,62 @@ def ramas_d():
 sports, files = ramas_d()
 
 # Read the session number and sport
-
-
 sport_name = input("Ingrese el nombre del deporte a procesar: ")
 selected_file = ""
 
-if sport_name in sports:
-    for i in range(len(sports)):
-        if sports[i] == sport_name:
-            selected_file = files[i]
-            break
 
-    # Cargar el archivo Excel
-    file_path = os.path.join(target_folder, selected_file)
-    xl = pd.ExcelFile(file_path)
-    sheet_names = xl.sheet_names
+# Function to process the selected filea
 
-    print(f"Sesiones: {sheet_names}")
+def jump_count(df, sheet_name,matrix_trials):
 
-    for sheet_name in sheet_names:
-        try:
-            df = pd.read_excel(file_path, sheet_name=sheet_name, header=8)
-            print(df.columns)
-            participants = df["Athlete"].dropna().unique()
+    reprobados = matrix_trials[matrix_trials["Trials"] < 3]
 
-            matrix_trials = df["Athlete"].value_counts().reset_index()
-            matrix_trials.columns = ["Athlete", "Trials"]
-            reprobados = matrix_trials[matrix_trials["Trials"] < 3]
+    if reprobados.empty:
+        print(f"Todos los participantes han realizado al menos 3 intentos en la sesión '{sheet_name}'.")
+    else:
+        print(f"Participantes que no han realizado al menos 3 intentos en la sesión '{sheet_name}':")
+        print(reprobados)
+        descartar = input("¿Desea descartar a estos participantes? (s/n): ")
 
-            if reprobados.empty:
-                print(f"Todos los participantes han realizado al menos 3 intentos en la sesión '{sheet_name}'.")
-            else:
-                print(f"Participantes que no han realizado al menos 3 intentos en la sesión '{sheet_name}':")
-                print(reprobados)
-                descartar = input("¿Desea descartar a estos participantes? (s/n): ")
-
-                if descartar.lower() == "s":
-                    #Filtar eliminar por los reprobados
-                    df = df[~df["Athlete"].isin(reprobados["Athlete"])]
-                    print(f"Participantes descartados: {reprobados['Athlete'].tolist()}")
+        if descartar.lower() == "s":
+            #Filtar eliminar por los reprobados
+            df = df[~df["Athlete"].isin(reprobados["Athlete"])]
+            print(f"Participantes descartados: {reprobados['Athlete'].tolist()}")
 
 
+def main(selected_file):
+    if sport_name in sports:
+        for i in range(len(sports)):
+            if sports[i] == sport_name:
+                selected_file = files[i]
+                break
+
+        # Cargar el archivo Excel
+        file_path = os.path.join(target_folder, selected_file)
+        xl = pd.ExcelFile(file_path)
+        sheet_names = xl.sheet_names
+
+        print(f"Sesiones: {sheet_names}")
+
+        for sheet_name in sheet_names:
+            try:
+                df = pd.read_excel(file_path, sheet_name=sheet_name, header=8)
+                print(df.columns)
+                #participants = df["Athlete"].dropna().unique()
+
+                matrix_trials = df["Athlete"].value_counts().reset_index()
+                matrix_trials.columns = ["Athlete", "Trials"]
+
+                jump_count(df, sheet_name, matrix_trials)
 
 
-        except Exception as e:
-            print(f" -> Error al procesar la hoja '{sheet_name}': {e}")
 
-else:
-    print("Deporte no encontrado.")
+
+            except Exception as e:
+                print(f" -> Error al procesar la hoja '{sheet_name}': {e}")
+
+    else:
+        print("Deporte no encontrado.")
+
+if __name__ == "__main__":
+    main(selected_file,)
