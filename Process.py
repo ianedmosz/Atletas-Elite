@@ -3,32 +3,38 @@ import os
 
 import pandas as pd
 
-target_folder = "Datos_disciplinas"
 
 # Count the number of files in the target folder
+def count_number(target_folder):
+    try:
+        file_count = sum(1 for entry in os.scandir(target_folder) if entry.is_file())
+        print(f"Total de documentos: {file_count}")
 
-try:
-    file_count = sum(1 for entry in os.scandir(target_folder) if entry.is_file())
-    print(f"Total de documentos: {file_count}")
-
-except FileNotFoundError:
-    print(
+    except FileNotFoundError:
+        print(
         f"Error: Could not find the folder '{target_folder}' relative to this notebook."
     )
 
+target_folder = "Datos_disciplinas"
+count_number(target_folder)
 
 # Ramas y Diciplinas
 
-sports = []
-files = []
-print("Lista de deportes:")
-for n, file in enumerate(os.listdir(target_folder), 1):
-    if file.endswith(".xlsx"):
-        files.append(file)
-        # print(f"File: {file}")
-        name = file.rsplit(".", 1)[0]
-        sports.append(name)
-        print(f"{n}: {sports[n - 1]}")
+def ramas_d():
+    sports = []
+    files = []
+    print("Lista de deportes:")
+    for n, file in enumerate(os.listdir(target_folder), 1):
+        if file.endswith(".xlsx"):
+            files.append(file)
+            # print(f"File: {file}")
+            name = file.rsplit(".", 1)[0]
+            sports.append(name)
+            print(f"{n}: {sports[n - 1]}")
+    return sports, files
+
+
+sports, files = ramas_d()
 
 # Read the session number and sport
 
