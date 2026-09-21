@@ -60,14 +60,19 @@ if sport_name in sports:
             reprobados = matrix_trials[matrix_trials["Trials"] < 3]
 
             if reprobados.empty:
-                print(
-                    f"Todos los participantes han realizado al menos 3 intentos en la sesión '{sheet_name}'."
-                )
+                print(f"Todos los participantes han realizado al menos 3 intentos en la sesión '{sheet_name}'.")
             else:
-                print(
-                    f"Participantes que no han realizado al menos 3 intentos en la sesión '{sheet_name}':"
-                )
+                print(f"Participantes que no han realizado al menos 3 intentos en la sesión '{sheet_name}':")
                 print(reprobados)
+                descartar = input("¿Desea descartar a estos participantes? (s/n): ")
+
+                if descartar.lower() == "s":
+                    #Filtar eliminar por los reprobados
+                    df = df[~df["Athlete"].isin(reprobados["Athlete"])]
+                    print(f"Participantes descartados: {reprobados['Athlete'].tolist()}")
+
+
+
 
         except Exception as e:
             print(f" -> Error al procesar la hoja '{sheet_name}': {e}")
