@@ -2,7 +2,6 @@
 import os
 
 import pandas as pd
-from pandas.core.apply import reconstruct_and_relabel_result
 
 
 # Count the number of files in the target folder
@@ -60,6 +59,9 @@ def jump_count(df, sheet_name,matrix_trials):
             #Filtar eliminar por los reprobados
             df = df[~df["Athlete"].isin(reprobados["Athlete"])]
             print(f"Participantes descartados: {reprobados['Athlete'].tolist()}")
+            return(df)
+        else:
+            print("No se han descartado a los participantes.")
             return(df)
 
 
