@@ -52,10 +52,55 @@ sport_input = input("Ingrese el numero del deporte a procesar: ")
 # Diccionario con sesiones filtradas o no
 sesiones_finales = {}
 
+def preguntar_sn(mensaje):
+    while True:
+        r = input(mensaje).strip().lower()
+        if r in ("s", "si", "sí"):
+            return True
+        if r in ("n", "no"):
+            return False
+        print("Introduce s o n.")
+
+def pedir_nombres(validos):
+    while True:
+        texto = input(
+            "Nombres exactos separados por comas: "
+        )
+        #Separar nombres
+        nombres = [n.strip() for n in texto.split(",") if n.strip()]
+        if not nombres:
+            return None
+        no_existen = [n for n in nombres if n not in validos]
+        if not no_existen:
+            return nombres
+        print("No están en la lista:", ", ".join(no_existen))
+
+def pedir_saltos(validos):
+    while True:
+        texto = input(
+            "Números de los saltos a eliminar, separados por comas "
+            "(Enter para cancelar): "
+        )
+        # Separar numeros
+        partes = [p.strip() for p in texto.split(",") if p.strip()]
+        if not partes:
+            return None
+        try:
+            numeros = [int(p) for p in partes]
+        except ValueError:
+            print("Solo se permiten números enteros.")
+            continue
+        invalidos = [n for n in numeros if n not in validos]
+        if not invalidos:
+            return numeros
+        print("No pertenecen a los atletas seleccionados:", invalidos)
 
 def jump_count(df, sheet_name):
     # DataFrame temporal para acumular los cambios
     df_tmp = df.copy()
+
+    if not df_tmp.index.is_unique:
+        df_tmp = df_tmp.reset_index(drop=True)
 
     columnas_base = [
         "Athlete",
@@ -87,123 +132,81 @@ def jump_count(df, sheet_name):
 
     cols_mostrar = [col for col in columnas_base if col in df_tmp.columns]
 
+
+
     while True:
-        matrix_trials = df_tmp["Athlete"].value_counts().reset_index()
-        matrix_trials.columns = ["Athlete", "Trials"]
-        #Tabla de los que no cumplieron
-        reprobados = matrix_trials[matrix_trials["Trials"] != 3]
+        # 1. Contar saltos por atleta
+        conteo = df_tmp["Athlete"].value_counts().reset_index()
+        conteo.columns = ["Athlete", "Trials"]
+        reprobados = conteo[conteo["Trials"] != 3]
 
         if reprobados.empty:
-            print(
-                f"No hay atletas con un número de intentos distinto de 3 "
-                f"en la sesión '{sheet_name}'."
-            )
+            print(f"No hay atletas con un número de intentos distinto de 3 "
+                  f"en la sesión '{sheet_name}'.")
             return df_tmp
 
         df_reprobados = df_tmp.loc[
-            df_tmp["Athlete"].isin(reprobados["Athlete"]),
-            cols_mostrar,
+            df_tmp["Athlete"].isin(reprobados["Athlete"]), cols_mostrar
         ].sort_values("Athlete")
 
+        # 2. Tabla general (cierra la ventana para continuar)
         print(f"Sesión '{sheet_name}': revisa las tablas y cierra la ventana.")
+        show(Conteo=reprobados.copy(), Saltos=df_reprobados.copy(),
+             settings={"block": True})
 
-        show(
-            Conteo=reprobados.copy(),
-            Saltos=df_reprobados.copy(),
-            settings={"block": True},
-        )
-
+        # 3. Menú
         while True:
             accion = input(
                 "\n¿Qué quieres hacer?\n"
                 "  [1] Eliminar a todos los atletas de la lista\n"
-                "  [2] Revisar y eliminar a un atleta específico\n"
-                "  [3] Terminar sin eliminar más atletas\n"
+                "  [2] Revisar atletas específicos\n"
+                "  [3] Terminar sin eliminar más\n"
                 "Opción: "
             ).strip()
-
             if accion in ("1", "2", "3"):
                 break
-
             print("Introduce 1, 2 o 3.")
 
         if accion == "1":
             df_tmp = df_tmp.loc[
                 ~df_tmp["Athlete"].isin(reprobados["Athlete"])
             ].copy()
-
-            print("Se eliminaron los atletas de la lista de esta sesión.")
+            print("Se eliminaron los atletas de la lista.")
             return df_tmp
 
-        elif accion == "3":
+        if accion == "3":
             return df_tmp
 
-        # Opción 2: elegir un atleta de la lista actual
-        while True:
-            atleta_a_borrar = input(
-                "Escribe el nombre exacto del atleta: "
-            ).strip()
+        # 4-5. Pedir y validar nombres (si alguno no existe, no se borra nada)
+        nombres = pedir_nombres(set(reprobados["Athlete"]))
+        if nombres is None:
+            continue
 
-            if atleta_a_borrar == "":
-                return df_tmp
+        # 6. Tabla solo con los saltos de los atletas elegidos
+        saltos = df_tmp.loc[df_tmp["Athlete"].isin(nombres), cols_mostrar]
+        print("Revisa los saltos (el número es el índice de la primera "
+              "columna) y cierra la ventana.")
+        show(Saltos=saltos.copy(), settings={"block": True})
 
-            if atleta_a_borrar in reprobados["Athlete"].values:
-                break
+        # 7. Elegir saltos por número y validarlos
+        numeros = pedir_saltos(set(saltos.index))
+        if numeros is None:
+            continue
 
-            print("El nombre no está en la lista. Ingresa un nombre válido.")
+        # 8. Confirmar
+        print("\nSe eliminarán estos saltos:")
+        print(df_tmp.loc[numeros, cols_mostrar[:3]])
 
-        # Mostrar únicamente los saltos del atleta elegido
-        saltos_atleta = df_tmp.loc[
-            df_tmp["Athlete"] == atleta_a_borrar,
-            cols_mostrar,
-        ]
-
-        print(f"Revisa los saltos de '{atleta_a_borrar}' y cierra la ventana.")
-
-        show(
-            Saltos=saltos_atleta.copy(),
-            settings={"block": True},
-        )
-
-        while True:
-            confirmar = input(
-                f"¿Eliminar a '{atleta_a_borrar}' con todos sus intentos? (s/n): "
-            ).strip().lower()
-
-            if confirmar in ("s", "si", "sí", "n", "no"):
-                break
-
-            print("Introduce s o n.")
-
-        if confirmar in ("s", "si", "sí"):
-            df_tmp = df_tmp.loc[
-                df_tmp["Athlete"] != atleta_a_borrar
-            ].copy()
-
-            print(f"Se eliminó a '{atleta_a_borrar}' de esta sesión.")
+        # 9. Eliminar solo esos saltos (los cambios se acumulan en df_tmp)
+        if preguntar_sn(f"¿Eliminar {len(numeros)} salto(s)? (s/n): "):
+            df_tmp = df_tmp.drop(index=numeros)
+            print("Saltos eliminados.")
         else:
-            print(f"No se eliminó a '{atleta_a_borrar}'.")
+            print("No se eliminó nada.")
 
-        # Comprobar si quedan atletas por revisar
-        conteo_restante = df_tmp["Athlete"].value_counts()
-
-        if not (conteo_restante != 3).any():
-            print("No quedan atletas con un número de intentos distinto de 3.")
+        # 10-12. ¿Continuar? Si sí, el while recalcula conteos y vuelve a mostrar
+        if not preguntar_sn("¿Seguir revisando? (s/n): "):
             return df_tmp
-
-        while True:
-            continuar = input(
-                "¿Quieres seguir revisando atletas? (s/n): "
-            ).strip().lower()
-
-            if continuar in ("s", "si", "sí", "n", "no"):
-                break
-
-            print("Introduce s o n.")
-
-        if continuar in ("n", "no"):
-            return df_tmp
-
 
 def main():
 
