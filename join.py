@@ -8,10 +8,11 @@ files = [f for f in os.listdir(target_folder) if f.endswith(".xlsx") and not f.s
 
 
 def read_file(file_name):
-    
+
+
     route = os.path.join(target_folder,file_name)
     sheet = pd.read_excel(route,header=8,sheet_name=None)
-    #Lista de df
+    #Lista de df's
     dfs = []
 
     for sheet_name, df in sheet.items():
@@ -29,7 +30,7 @@ todos = []
 for f in files:
       todos.extend(read_file(f))
 
-
+# The concatenation of all the dataframes
 df_final = pd.concat(todos,ignore_index=True)
 
 
